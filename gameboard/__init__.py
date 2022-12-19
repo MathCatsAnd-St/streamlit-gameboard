@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import numpy as np
 import streamlit as st
 import re
+import time
 
 _RELEASE = False
 
@@ -87,7 +88,7 @@ PLAYERS = {'Player 1':"#3A5683",'Player 2':"#73956F"}
 BOARD_COLOR = ['#FFFFFF','#000000']
 
 
-def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR, mode='auto', key=None):
+def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR, board_state=None, key=None):
     """Create a new instance of "gameboard".
 
     Parameters
@@ -112,8 +113,8 @@ def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR,
     board_color=validate_board_color(board_color,rows,cols)
 
     component_value = _gameboard(rows=rows, cols=cols, players=players, 
-                                 board_color=board_color, key=key, 
-                                 default=DEFAULT(rows,cols))
+                                 board_color=board_color, board_state = board_state, key=key, 
+                                 default=board_state)        
 
     return component_value
 
@@ -121,6 +122,8 @@ def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR,
 # Test code for during development
 if not _RELEASE:
     import streamlit as st
+    if 'abstract' in st.session_state:
+        st.session_state.abstract[0][0]['player']
 
     st.subheader("Component with constant args")
     my_board = gameboard(3,3, key='tictactoe')
@@ -129,16 +132,55 @@ if not _RELEASE:
 
     st.subheader("Component with variable args")
 
-    rows = st.slider('Rows',1,10,3,key='rows')
-    cols = st.slider('Columns',1,10,3,key='cols')
-    A, B = st.columns(2)
-    colorA = A.color_picker('First Color', "#FFFFFF")
-    alphaA = A.slider("First Alpha", 0, 255, 255)
-    colorB = B.color_picker('Second Color', "#000000")
-    alphaB = B.slider("Second Alpha", 0, 255, 255)
+    with st.expander('Board Parameters'):
+        columns = st.columns(3)
+        with columns[0]:
+            rows = st.slider('Rows',1,10,3,key='rows')
+            cols = st.slider('Columns',1,10,3,key='cols')
+        with columns[1]:
+            colorA = st.color_picker('First Color', "#FFFFFF")
+            alphaA = st.slider("First Alpha", 0, 255, 255)
+        with columns[2]:
+            colorB = st.color_picker('Second Color', "#000000")
+            alphaB = st.slider("Second Alpha", 0, 255, 255)
     
+    with st.expander('Player Parameters'):
+        columns = st.columns(3)
+        with columns[0]:
+            player1 = st.text_input('Player 1', value='Player 1')
+            player2 = st.text_input('Player 2', value='Player 2')
+        with columns[1]:
+            color1 = st.color_picker('Player 1 Color', "#3A5683")
+            alpha1 = st.slider("Player 1 Alpha", 0, 255, 255)
+        with columns[2]:
+            color2 = st.color_picker('Player 2 Color', "#73956F")
+            alpha2 = st.slider("Player 2 Alpha", 0, 255, 255)
+
+
     board_color = [colorA+f'{alphaA:02x}', colorB+f'{alphaB:02x}']
     board_color = [color.upper() for color in board_color]
 
-    my_board = gameboard(rows, cols, board_color=board_color, key="abstract")
-    my_board
+    color1 = color1+f'{alpha1:02x}'
+    color1 = color1.upper()
+
+    color2 = color2+f'{alpha2:02x}'
+    color2 = color2.upper()
+
+    players = {player1:color1,player2:color2}
+
+    def clear(row,col):
+        new = {'player':0, 'piece':0,}
+        st.session_state.abstract[row][col]=({"player":0,"piece":0,"turn":0,"enabled":True,"isFocused":False})
+
+
+    if 'abstract' not in st.session_state:
+        st.session_state.abstract = DEFAULT(rows,cols)
+    with st.expander('Session State'):
+        st.session_state.abstract
+    my_board = gameboard(rows, cols, players=players, board_color=board_color,board_state=st.session_state.abstract, key="abstract")
+    columns = st.columns(3)
+    row_clear = columns[0].number_input('Row',1,rows)
+    col_clear = columns[1].number_input('Column',1,cols)
+    columns[2].button('Clear', on_click=clear, args=(row_clear-1,col_clear-1))
+    with st.expander('Session State'):
+        st.session_state.abstract
