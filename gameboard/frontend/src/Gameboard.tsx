@@ -146,6 +146,11 @@ class Gameboard extends StreamlitComponentBase<State> {
       this.state.board_state = board_state_ss
     }
 
+    // Check if board has been resized
+    if (this.state.board_state.length != rows || this.state.board_state[0].length != cols) {
+      this.state.board_state = new BoardState(rows,cols)
+    }
+
     // Theme object from Streamlit
     const { theme } = this.props
     const style: React.CSSProperties = {}

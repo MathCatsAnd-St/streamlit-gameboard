@@ -87,7 +87,6 @@ def DEFAULT(rows, cols):
 PLAYERS = {'Player 1':"#3A5683",'Player 2':"#73956F"}
 BOARD_COLOR = ['#FFFFFF','#000000']
 
-
 def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR, board_state=None, key=None):
     """Create a new instance of "gameboard".
 
