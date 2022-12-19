@@ -1,56 +1,101 @@
 import os
 import streamlit.components.v1 as components
+import numpy as np
+import streamlit as st
+import re
 
-# Create a _RELEASE constant. We'll set this to False while we're developing
-# the component, and True when we're ready to package and distribute it.
-# (This is, of course, optional - there are innumerable ways to manage your
-# release process.)
 _RELEASE = False
-
-# Declare a Streamlit component. `declare_component` returns a function
-# that is used to create instances of the component. We're naming this
-# function "_gameboard", with an underscore prefix, because we don't want
-# to expose it directly to users. Instead, we will create a custom wrapper
-# function, below, that will serve as our component's public API.
-
-# It's worth noting that this call to `declare_component` is the
-# *only thing* you need to do to create the binding between Streamlit and
-# your component frontend. Everything else we do in this file is simply a
-# best practice.
 
 if not _RELEASE:
     _gameboard = components.declare_component(
-        # We give the component a simple, descriptive name ("gameboard"
-        # does not fit this bill, so please choose something better for your
-        # own component :)
         "gameboard",
-        # Pass `url` here to tell Streamlit that the component will be served
-        # by the local dev server that you run via `npm run start`.
-        # (This is useful while your component is in development.)
         url="http://localhost:3001",
     )
 else:
-    # When we're distributing a production version of the component, we'll
-    # replace the `url` param with `path`, and point it to to the component's
-    # build directory:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(parent_dir, "frontend/build")
     _gameboard = components.declare_component("gameboard", path=build_dir)
 
+def validate_color(color):
+    if re.match("^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$", color):
+        return True
+    else:
+        return False
 
-# Create a wrapper function for the component. This is an optional
-# best practice - we could simply expose the component function returned by
-# `declare_component` and call it done. The wrapper allows us to customize
-# our component's API: we can pre-process its input args, post-process its
-# output value, and add a docstring for users.
-def gameboard(name, key=None):
+def validate_players(player_dict):
+    try:
+        players = list(player_dict.keys())
+        colors = list(player_dict.values())
+    except:
+        raise ValueError("Unable to unpack player dictionary. "\
+            "Unable to extract keys (players) and/or values (colors).")
+    if len(players) < 1:
+        raise ValueError("Player dictionary is empty. There needs to be at least one player.")
+    formatted_dict = dict()
+    for i in range(len(players)):
+        color = colors[i]
+        if type(color) == str and validate_color(color):
+            formatted_dict[i+1]={'name':str(players[i]),'stroke':color,'fill':color}
+        elif len(color) == 2 and \
+            type(color[0]) == str and validate_color(color[0]) and \
+            type(color[1]) == str and validate_color(color[1]):
+            formatted_dict[i+1]={'name':str(players[i]),'stroke':color[0],'fill':color[1]}
+        else:
+            raise ValueError("Color needs to be a hex string or list of two hex " \
+                "strings for each player. e.g. '#3A5683' or '#73956F'")
+    formatted_dict[0] = {'name':'','stroke':'#00000000', 'fill':'#00000000'}
+    return formatted_dict
+
+def validate_board_color(board_color, rows, cols):
+    if board_color == None:
+        board_color = np.full((rows,cols),'#FFFFFF00')
+    elif type(board_color) == str and validate_color(board_color):
+        board_color = np.full((rows,cols), board_color)
+    elif type(board_color) == list:
+        if len(board_color) == 2 and \
+            type(board_color[0]) == str and validate_color(board_color[0]) and \
+            type(board_color[1]) == str and validate_color(board_color[1]):
+            solid = np.full((rows,cols),board_color[0])
+            for index, values in np.ndenumerate(solid):
+                if sum(index)%2 == 1:
+                    solid[index] = board_color[1]
+            board_color = solid
+        else:
+            st.write(len(board_color))
+            st.write(type(board_color[0]))
+            st.write(validate_color(board_color[0]))
+            st.write(type(board_color[1]))
+            st.write(validate_color(board_color[1]))
+            raise ValueError("Invalid board color list. %s" % board_color)
+    elif type(board_color) == np.array and board_color.shape == (rows,cols):
+        for color in board_color:
+            if not validate_color(color):
+                raise ValueError(f"There is an invalid color specified in the "\
+                    "board_color array: {color}")
+    return board_color.tolist()
+
+def DEFAULT(rows, cols):
+    default = []
+    for row in range(rows):
+        row_list = []
+        for col in range(cols):
+            row_list.append({"player":0,"piece":0,"turn":0,"enabled":True,"isFocused":False})
+        default.append(row_list)
+    return default
+
+PLAYERS = {'Player 1':"#3A5683",'Player 2':"#73956F"}
+BOARD_COLOR = ['#FFFFFF','#000000']
+
+
+def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR, mode='auto', key=None):
     """Create a new instance of "gameboard".
 
     Parameters
     ----------
-    name: str
-        The name of the thing we're saying hello to. The component will display
-        the text "Hello, {name}!"
+    rows: int
+        The number of rows on the gameboard.
+    cols: int
+        The number of columns on the gameboard.
     key: str or None
         An optional key that uniquely identifies this component. If this is
         None, and the component's arguments are changed, the component will
@@ -58,49 +103,42 @@ def gameboard(name, key=None):
 
     Returns
     -------
-    int
-        The number of times the component's "Click Me" button has been clicked.
-        (This is the value passed to `Streamlit.setComponentValue` on the
-        frontend.)
+    np.array
+        An array representing the current gameboard state.
 
     """
-    # Call through to our private component function. Arguments we pass here
-    # will be sent to the frontend, where they'll be available in an "args"
-    # dictionary.
-    #
-    # "default" is a special argument that specifies the initial return
-    # value of the component before the user has interacted with it.
-    component_value = _gameboard(name=name, key=key, default=0)
 
-    # We could modify the value returned from the component if we wanted.
-    # There's no need to do this in our simple example - but it's an option.
+    players=validate_players(players)
+    board_color=validate_board_color(board_color,rows,cols)
+
+    component_value = _gameboard(rows=rows, cols=cols, players=players, 
+                                 board_color=board_color, key=key, 
+                                 default=DEFAULT(rows,cols))
+
     return component_value
 
 
-# Add some test code to play with the component while it's in development.
-# During development, we can run this just as we would any other Streamlit
-# app: `$ streamlit run gameboard/__init__.py`
+# Test code for during development
 if not _RELEASE:
     import streamlit as st
 
     st.subheader("Component with constant args")
-
-    # Create an instance of our component with a constant `name` arg, and
-    # print its output value.
-    num_clicks = gameboard("World")
-    st.markdown("You've clicked %s times!" % int(num_clicks))
+    my_board = gameboard(3,3, key='tictactoe')
 
     st.markdown("---")
+
     st.subheader("Component with variable args")
 
-    # Create a second instance of our component whose `name` arg will vary
-    # based on a text_input widget.
-    #
-    # We use the special "key" argument to assign a fixed identity to this
-    # component instance. By default, when a component's arguments change,
-    # it is considered a new instance and will be re-mounted on the frontend
-    # and lose its current state. In this case, we want to vary the component's
-    # "name" argument without having it get recreated.
-    name_input = st.text_input("Enter a name", value="Streamlit")
-    num_clicks = gameboard(name_input, key="foo")
-    st.markdown("You've clicked %s times!" % int(num_clicks))
+    rows = st.slider('Rows',1,10,3,key='rows')
+    cols = st.slider('Columns',1,10,3,key='cols')
+    A, B = st.columns(2)
+    colorA = A.color_picker('First Color', "#FFFFFF")
+    alphaA = A.slider("First Alpha", 0, 255, 255)
+    colorB = B.color_picker('Second Color', "#000000")
+    alphaB = B.slider("Second Alpha", 0, 255, 255)
+    
+    board_color = [colorA+f'{alphaA:02x}', colorB+f'{alphaB:02x}']
+    board_color = [color.upper() for color in board_color]
+
+    my_board = gameboard(rows, cols, board_color=board_color, key="abstract")
+    my_board
