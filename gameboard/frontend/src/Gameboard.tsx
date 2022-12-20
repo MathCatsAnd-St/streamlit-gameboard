@@ -28,15 +28,17 @@ class BoardState extends Array<Array<SquareState>> {
           board_state[row][col] = dict
       }
     }
-    return board_state
+    return (board_state)
   }
+
 }
 
 interface State {
   activePlayer: number
   action: number
-  board: BoardState
+  board_state: BoardState
   turn: number
+  first_render: boolean
 }
 
 function Piece(props:any) {
@@ -126,10 +128,11 @@ function Stack(props:any) {
  */
 class Gameboard extends StreamlitComponentBase<State> {
   
-  public state = {activePlayer: 1,
+  public state:State = {activePlayer: 1,
                   action: 1,
                   board_state: new BoardState(this.props.args["rows"],this.props.args["cols"]),
-                  turn: 0}
+                  turn: 1,
+                  first_render:true}
 
   public render = (): ReactNode => {
     // Arguments passed to the plugin from Python
@@ -141,14 +144,23 @@ class Gameboard extends StreamlitComponentBase<State> {
     const board_state_ss = this.props.args["board_state"]
     const key = this.props.args["key"]
     
-    // Check if board_state is being passed back to accomodate manual modification
-    if (board_state_ss != null) {
+    const change = (JSON.stringify(this.state.board_state) !== JSON.stringify(board_state_ss))
+
+    if (board_state_ss !== null) {
       this.state.board_state = board_state_ss
     }
 
+    if (board_state_ss !== null && change){
+      Streamlit.setComponentValue(this.state.board_state)
+    }
+
     // Check if board has been resized
-    if (this.state.board_state.length != rows || this.state.board_state[0].length != cols) {
+    if (this.state.board_state.length !== rows || this.state.board_state[0].length !== cols) {   
+      this.state.activePlayer = 1
+      this.state.action = 1
       this.state.board_state = new BoardState(rows,cols)
+      this.state.turn = 1
+      Streamlit.setComponentValue(this.state.board_state)
     }
 
     // Theme object from Streamlit
@@ -209,7 +221,8 @@ class Gameboard extends StreamlitComponentBase<State> {
 
     this.setState(
       prevState => ({ turn: prevState.turn + 1 , 
-                      activePlayer: (prevState.activePlayer % num_players) + 1}),
+                      activePlayer: (prevState.activePlayer % num_players) + 1,
+                      first_render: false}),
       () => Streamlit.setComponentValue(this.state.board_state)
     )
   }
