@@ -87,7 +87,6 @@ def DEFAULT(rows, cols):
 PLAYERS = {'Player 1':"#3A5683",'Player 2':"#73956F"}
 BOARD_COLOR = ['#FFFFFF','#000000']
 
-
 def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR, board_state=None, key=None):
     """Create a new instance of "gameboard".
 
@@ -122,8 +121,6 @@ def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR,
 # Test code for during development
 if not _RELEASE:
     import streamlit as st
-    if 'abstract' in st.session_state:
-        st.session_state.abstract[0][0]['player']
 
     st.subheader("Component with constant args")
     my_board = gameboard(3,3, key='tictactoe')
@@ -169,9 +166,7 @@ if not _RELEASE:
     players = {player1:color1,player2:color2}
 
     def clear(row,col):
-        new = {'player':0, 'piece':0,}
         st.session_state.abstract[row][col]=({"player":0,"piece":0,"turn":0,"enabled":True,"isFocused":False})
-
 
     if 'abstract' not in st.session_state:
         st.session_state.abstract = DEFAULT(rows,cols)
