@@ -26,7 +26,7 @@ jobs:
       # install all dependencies (including pdoc)
       - run: pip install streamlit pdoc
       # build your documentation into docs/.
-      - run: pdoc -o docs/
+      - run: pdoc -o docs/ gameboard
 
       - uses: actions/upload-pages-artifact@v1
         with:
