@@ -5,7 +5,7 @@ import streamlit as st
 import re
 import time
 
-_RELEASE = False
+_RELEASE = True
 
 if not _RELEASE:
     _gameboard = components.declare_component(
