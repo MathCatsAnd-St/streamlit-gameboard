@@ -143,7 +143,8 @@ class Gameboard extends StreamlitComponentBase<State> {
     const board_color = this.props.args["board_color"]
     const board_state_ss = this.props.args["board_state"]
     const key = this.props.args["key"]
-    
+    const app_color:string = this.props.args["app_color"]
+
     const change = (JSON.stringify(this.state.board_state) !== JSON.stringify(board_state_ss))
 
     if (board_state_ss !== null) {
@@ -184,11 +185,10 @@ class Gameboard extends StreamlitComponentBase<State> {
     return (
       // <div onClick={this.onClicked}>
       <div>
-        <p> The game board is {rows} by {cols}.</p>
-        <p style={{color: "red"}}> It is {players[this.state.activePlayer]['name']}'s turn.</p>
+        <p style={{color:app_color}}> It is {players[this.state.activePlayer]['name']}'s turn.</p>
           <Stack rows={rows} cols={cols} players={players} board_color={board_color} func={this.onClicked} board_state={this.state.board_state}/>
       </div>
-
+      
       // <span>
       //   Hello, {name}! &nbsp;
       //   <button
