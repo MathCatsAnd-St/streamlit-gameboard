@@ -5,7 +5,7 @@ import streamlit as st
 import re
 import time
 
-_RELEASE = False
+_RELEASE = True
 
 if not _RELEASE:
     _gameboard = components.declare_component(
@@ -86,6 +86,9 @@ def DEFAULT(rows, cols):
 
 PLAYERS = {'Player 1':"#3A5683",'Player 2':"#73956F"}
 BOARD_COLOR = ['#FFFFFF','#000000']
+PRIMARY = '#FF4B4B'
+if st.get_option("theme.primaryColor") is not None:
+    PRIMARY = st.get_option("theme.primaryColor")
 
 def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR, board_state=None, key=None):
     """Create a new instance of "gameboard".
@@ -113,7 +116,7 @@ def gameboard(rows:int, cols:int, players:dict=PLAYERS, board_color=BOARD_COLOR,
 
     component_value = _gameboard(rows=rows, cols=cols, players=players, 
                                  board_color=board_color, board_state = board_state, key=key, 
-                                 default=board_state)        
+                                 default=board_state, app_color=PRIMARY)        
 
     return component_value
 
